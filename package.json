@@ -1,0 +1,19 @@
+{
+  "name": "sleep-guardian",
+  "version": "0.1.0",
+  "description": "Tray-App: schaltet den PC in Sleep/Shutdown, sobald keine wichtigen Prozesse (Steam-Downloads, Claude Code Sessions) mehr laufen.",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc -p .",
+    "start": "npm run build && electron .",
+    "dev": "tsc -p . -w"
+  },
+  "dependencies": {
+    "electron": "^31.0.0",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.5.0"
+  }
+}

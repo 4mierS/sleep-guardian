@@ -1,0 +1,149 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.Guardian = void 0;
+const config_1 = require("./config");
+const network_1 = require("./monitors/network");
+const steam_1 = require("./monitors/steam");
+const claudeSessions_1 = require("./monitors/claudeSessions");
+const sleepAction_1 = require("./sleepAction");
+class Guardian {
+    constructor() {
+        this.state = "active";
+        this.idleSince = null;
+        this.cancelDeadline = null;
+        this.listeners = [];
+        this.paused = false;
+        this.timer = null;
+    }
+    onUpdate(fn) {
+        this.listeners.push(fn);
+    }
+    start() {
+        this.tick(); // sofort einmal prüfen
+        this.timer = setInterval(() => this.tick(), config_1.config.pollIntervalMs);
+    }
+    stop() {
+        if (this.timer)
+            clearInterval(this.timer);
+    }
+    setPaused(paused) {
+        this.paused = paused;
+        if (paused) {
+            this.state = "active";
+            this.idleSince = null;
+            this.cancelDeadline = null;
+            this.emit([]);
+        }
+    }
+    isPaused() {
+        return this.paused;
+    }
+    /** Bricht einen laufenden Countdown ab (z.B. per Notification-Klick). */
+    cancelCountdown() {
+        if (this.state === "idle-counting" || this.state === "cancel-window") {
+            this.state = "active";
+            this.idleSince = null;
+            this.cancelDeadline = null;
+            this.emit(["manuell abgebrochen"]);
+        }
+    }
+    /** Sofort schlafen legen / herunterfahren – egal was gerade läuft. */
+    sleepNow() {
+        this.state = "sleeping";
+        this.emit(["vom Handy ausgelöst"]);
+        (0, sleepAction_1.triggerSleepOrShutdown)();
+    }
+    /**
+     * Verschiebt den Countdown um N Minuten nach hinten ("Snooze").
+     * Praktisch, wenn du unterwegs merkst: doch noch was am Laufen lassen.
+     */
+    extendBy(minutes) {
+        const ms = minutes * 60_000;
+        if (this.idleSince !== null) {
+            this.idleSince += ms;
+        }
+        if (this.cancelDeadline !== null) {
+            this.cancelDeadline += ms;
+        }
+        // Aus dem letzten Warnfenster zurück in den normalen Countdown
+        if (this.state === "cancel-window") {
+            this.state = "idle-counting";
+        }
+        this.emit([`+${minutes} min verlängert`]);
+    }
+    /** Umschalten zwischen Energiesparmodus und Herunterfahren. */
+    setAction(action) {
+        config_1.config.action = action;
+        this.emit(this.state === "active" ? [] : [`Aktion: ${action}`]);
+    }
+    getState() {
+        return this.state;
+    }
+    async tick() {
+        if (this.paused)
+            return;
+        const [network, steam, claude] = await Promise.all([
+            (0, network_1.isNetworkDownloadActive)(),
+            (0, steam_1.isSteamDownloadActive)(),
+            (0, claudeSessions_1.isClaudeSessionActive)(),
+        ]);
+        const reasons = [];
+        if (steam)
+            reasons.push("Steam-Download läuft");
+        else if (network)
+            reasons.push("Netzwerk-Download aktiv");
+        if (claude)
+            reasons.push("Claude Code Session aktiv");
+        const anythingActive = reasons.length > 0;
+        const now = Date.now();
+        if (anythingActive) {
+            this.state = "active";
+            this.idleSince = null;
+            this.cancelDeadline = null;
+            this.emit(reasons);
+            return;
+        }
+        // Nichts Wichtiges läuft mehr
+        if (this.idleSince === null) {
+            this.idleSince = now;
+        }
+        const idleFor = now - this.idleSince;
+        if (idleFor < config_1.config.idleThresholdMs - config_1.config.cancelWindowMs) {
+            this.state = "idle-counting";
+            this.emit(reasons);
+            return;
+        }
+        if (idleFor < config_1.config.idleThresholdMs) {
+            if (this.state !== "cancel-window") {
+                this.state = "cancel-window";
+                this.cancelDeadline = this.idleSince + config_1.config.idleThresholdMs;
+                this.emit(reasons, true); // true = "gerade in cancel-window eingetreten"
+            }
+            else {
+                this.emit(reasons);
+            }
+            return;
+        }
+        // Zeit abgelaufen -> handeln
+        this.state = "sleeping";
+        this.emit(reasons);
+        (0, sleepAction_1.triggerSleepOrShutdown)();
+    }
+    emit(reasons, justEnteredCancelWindow = false) {
+        const msUntilSleep = this.state === "active"
+            ? null
+            : this.cancelDeadline
+                ? Math.max(0, this.cancelDeadline - Date.now())
+                : this.idleSince
+                    ? Math.max(0, config_1.config.idleThresholdMs - (Date.now() - this.idleSince))
+                    : null;
+        const snapshot = { state: this.state, reasons, msUntilSleep };
+        for (const l of this.listeners)
+            l(snapshot);
+        if (justEnteredCancelWindow) {
+            // Extra-Flag könnte hier für eine System-Notification genutzt werden;
+            // main.ts hört ohnehin auf jede Änderung von msUntilSleep.
+        }
+    }
+}
+exports.Guardian = Guardian;
