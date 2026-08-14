@@ -98,7 +98,9 @@ nicht siehst.
 
 ## Steuerung vom Handy
 
-Siehe `control-plane/README.md`. Kurzfassung: dein Hetzner-Server wird zum
+Die Control-Plane liegt in einem eigenen Repo:
+[`sleep-guardian-control`](https://github.com/4mierS/sleep-guardian-control).
+Kurzfassung: dein Hetzner-Server wird zum
 Vermittler, der PC fragt dort alle 5s nach Befehlen, das Handy schreibt die
 Befehle rein. Keine Portfreigabe nötig.
 
