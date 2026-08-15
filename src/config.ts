@@ -17,6 +17,12 @@ export const config = {
   // "sleep" (Energiesparmodus) oder "shutdown" (herunterfahren)
   action: (process.env.SLEEP_ACTION as "sleep" | "shutdown") ?? "sleep",
 
+  // --- Anwesenheit ---
+  // Wie lange ohne Tastatur-/Mauseingabe, bis wir dich als "weg" annehmen (s).
+  // Erst danach beginnt der idleThresholdMs-Countdown zu laufen — die
+  // Gesamtzeit bis zur Aktion ist also die Summe aus beiden Werten.
+  presenceIdleThresholdSec: numEnv("PRESENCE_IDLE_THRESHOLD_SEC", 300),
+
   // --- Netzwerk / Steam ---
   // Download-Rate (Bytes/s), ab der wir "aktiver Download" annehmen.
   // 1.5 MB/s als Default; bei dir eher niedriger ansetzen, wenn Steam

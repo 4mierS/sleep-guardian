@@ -39,6 +39,8 @@ const electron_1 = require("electron");
 const state_1 = require("./state");
 const remote_1 = require("./remote");
 const sleepAction_1 = require("./sleepAction");
+const pairWindow_1 = require("./pairWindow");
+const pairing_1 = require("./pairing");
 const icons_1 = require("./icons");
 // Läuft ohne Dock-Icon / Fenster, nur Tray
 electron_1.app.dock?.hide();
@@ -118,8 +120,57 @@ function buildMenu() {
         },
         { label: "Bildschirm sperren", click: () => (0, sleepAction_1.lockWorkstation)() },
         { type: "separator" },
+        {
+            label: "Handy koppeln",
+            enabled: remote.enabled,
+            click: () => void pairPhone(),
+        },
+        {
+            label: "Alle Handys abmelden",
+            enabled: remote.enabled,
+            click: () => void revokeAllPhones(),
+        },
+        { type: "separator" },
         { label: "Beenden", click: () => electron_1.app.quit() },
     ]);
+}
+/** Holt einen Einmal-Code und zeigt ihn als QR. */
+async function pairPhone() {
+    try {
+        await (0, pairWindow_1.showPairingWindow)();
+    }
+    catch (err) {
+        electron_1.dialog.showErrorBox("Koppeln nicht möglich", `Die Control-Plane hat den Pairing-Code nicht geliefert.\n\n${String(err)}`);
+    }
+}
+/**
+ * Notaus. Bewusst mit Rückfrage: danach kommt kein Handy mehr an diesen PC,
+ * bis wieder jemand physisch davorsitzt und neu koppelt.
+ */
+async function revokeAllPhones() {
+    const { response } = await electron_1.dialog.showMessageBox({
+        type: "warning",
+        buttons: ["Abbrechen", "Alle abmelden"],
+        defaultId: 0,
+        cancelId: 0,
+        title: "Alle Handys abmelden",
+        message: "Alle gekoppelten Handys abmelden?",
+        detail: "Danach kann kein Handy diesen PC mehr fernsteuern. Zum Wiederherstellen musst du hier am Rechner neu koppeln.",
+    });
+    if (response !== 1)
+        return;
+    try {
+        const count = await (0, pairing_1.revokeAllDevices)();
+        new electron_1.Notification({
+            title: "Handys abgemeldet",
+            body: count === 0
+                ? "Es war kein Gerät gekoppelt."
+                : `${count} Gerät(e) haben den Zugriff verloren.`,
+        }).show();
+    }
+    catch (err) {
+        electron_1.dialog.showErrorBox("Abmelden fehlgeschlagen", `Die Control-Plane war nicht erreichbar.\n\n${String(err)}`);
+    }
 }
 let lastSnapshot = null;
 function refreshTray() {

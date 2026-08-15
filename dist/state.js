@@ -5,6 +5,7 @@ const config_1 = require("./config");
 const network_1 = require("./monitors/network");
 const steam_1 = require("./monitors/steam");
 const claudeSessions_1 = require("./monitors/claudeSessions");
+const presence_1 = require("./monitors/presence");
 const sleepAction_1 = require("./sleepAction");
 class Guardian {
     constructor() {
@@ -87,7 +88,11 @@ class Guardian {
             (0, steam_1.isSteamDownloadActive)(),
             (0, claudeSessions_1.isClaudeSessionActive)(),
         ]);
+        // Synchron und billig, deshalb außerhalb des Promise.all.
+        const present = (0, presence_1.isUserPresent)();
         const reasons = [];
+        if (present)
+            reasons.push("Nutzer aktiv");
         if (steam)
             reasons.push("Steam-Download läuft");
         else if (network)

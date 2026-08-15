@@ -1,10 +1,12 @@
 import * as dotenv from "dotenv";
 dotenv.config();
 
-import { app, Tray, Menu, nativeImage, Notification } from "electron";
+import { app, Tray, Menu, nativeImage, Notification, dialog } from "electron";
 import { Guardian, StatusSnapshot } from "./state";
 import { RemoteControl, RemoteCommand } from "./remote";
 import { lockWorkstation } from "./sleepAction";
+import { showPairingWindow } from "./pairWindow";
+import { revokeAllDevices } from "./pairing";
 import { ICON_IDLE, ICON_ACTIVE, ICON_COUNTDOWN, ICON_SLEEPING } from "./icons";
 
 // Läuft ohne Dock-Icon / Fenster, nur Tray
@@ -91,8 +93,66 @@ function buildMenu() {
     },
     { label: "Bildschirm sperren", click: () => lockWorkstation() },
     { type: "separator" },
+    {
+      label: "Handy koppeln",
+      enabled: remote.enabled,
+      click: () => void pairPhone(),
+    },
+    {
+      label: "Alle Handys abmelden",
+      enabled: remote.enabled,
+      click: () => void revokeAllPhones(),
+    },
+    { type: "separator" },
     { label: "Beenden", click: () => app.quit() },
   ]);
+}
+
+/** Holt einen Einmal-Code und zeigt ihn als QR. */
+async function pairPhone() {
+  try {
+    await showPairingWindow();
+  } catch (err) {
+    dialog.showErrorBox(
+      "Koppeln nicht möglich",
+      `Die Control-Plane hat den Pairing-Code nicht geliefert.\n\n${String(err)}`
+    );
+  }
+}
+
+/**
+ * Notaus. Bewusst mit Rückfrage: danach kommt kein Handy mehr an diesen PC,
+ * bis wieder jemand physisch davorsitzt und neu koppelt.
+ */
+async function revokeAllPhones() {
+  const { response } = await dialog.showMessageBox({
+    type: "warning",
+    buttons: ["Abbrechen", "Alle abmelden"],
+    defaultId: 0,
+    cancelId: 0,
+    title: "Alle Handys abmelden",
+    message: "Alle gekoppelten Handys abmelden?",
+    detail:
+      "Danach kann kein Handy diesen PC mehr fernsteuern. Zum Wiederherstellen musst du hier am Rechner neu koppeln.",
+  });
+
+  if (response !== 1) return;
+
+  try {
+    const count = await revokeAllDevices();
+    new Notification({
+      title: "Handys abgemeldet",
+      body:
+        count === 0
+          ? "Es war kein Gerät gekoppelt."
+          : `${count} Gerät(e) haben den Zugriff verloren.`,
+    }).show();
+  } catch (err) {
+    dialog.showErrorBox(
+      "Abmelden fehlgeschlagen",
+      `Die Control-Plane war nicht erreichbar.\n\n${String(err)}`
+    );
+  }
 }
 
 let lastSnapshot: StatusSnapshot | null = null;

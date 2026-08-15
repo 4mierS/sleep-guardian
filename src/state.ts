@@ -2,6 +2,7 @@ import { config } from "./config";
 import { isNetworkDownloadActive } from "./monitors/network";
 import { isSteamDownloadActive } from "./monitors/steam";
 import { isClaudeSessionActive } from "./monitors/claudeSessions";
+import { isUserPresent } from "./monitors/presence";
 import { triggerSleepOrShutdown } from "./sleepAction";
 
 export type AppState = "active" | "idle-counting" | "cancel-window" | "sleeping";
@@ -104,7 +105,11 @@ export class Guardian {
       isClaudeSessionActive(),
     ]);
 
+    // Synchron und billig, deshalb außerhalb des Promise.all.
+    const present = isUserPresent();
+
     const reasons: string[] = [];
+    if (present) reasons.push("Nutzer aktiv");
     if (steam) reasons.push("Steam-Download läuft");
     else if (network) reasons.push("Netzwerk-Download aktiv");
     if (claude) reasons.push("Claude Code Session aktiv");
