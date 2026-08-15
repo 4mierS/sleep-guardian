@@ -4,6 +4,7 @@ import type { StatusSnapshot } from "./state";
 /** Befehle, die vom Handy über die Control-Plane kommen können. */
 export type RemoteCommand =
   | { type: "sleep-now" }
+  | { type: "lock" }
   | { type: "cancel" }
   | { type: "pause" }
   | { type: "resume" }

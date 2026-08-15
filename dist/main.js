@@ -38,6 +38,7 @@ dotenv.config();
 const electron_1 = require("electron");
 const state_1 = require("./state");
 const remote_1 = require("./remote");
+const sleepAction_1 = require("./sleepAction");
 const icons_1 = require("./icons");
 // Läuft ohne Dock-Icon / Fenster, nur Tray
 electron_1.app.dock?.hide();
@@ -50,6 +51,10 @@ function applyRemoteCommand(cmd) {
     switch (cmd.type) {
         case "sleep-now":
             guardian.sleepNow();
+            break;
+        case "lock":
+            // Am Guardian vorbei: Sperren ändert weder Zustand noch Countdown.
+            (0, sleepAction_1.lockWorkstation)();
             break;
         case "cancel":
             guardian.cancelCountdown();
@@ -111,6 +116,7 @@ function buildMenu() {
             enabled: snapshot?.state === "idle-counting" || snapshot?.state === "cancel-window",
             click: () => guardian.cancelCountdown(),
         },
+        { label: "Bildschirm sperren", click: () => (0, sleepAction_1.lockWorkstation)() },
         { type: "separator" },
         { label: "Beenden", click: () => electron_1.app.quit() },
     ]);

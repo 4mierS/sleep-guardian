@@ -1,8 +1,19 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.lockWorkstation = lockWorkstation;
 exports.triggerSleepOrShutdown = triggerSleepOrShutdown;
 const child_process_1 = require("child_process");
 const config_1 = require("./config");
+/**
+ * Sperrt den Bildschirm. Bewusst getrennt von triggerSleepOrShutdown: der PC
+ * bleibt wach, der Zustand der Statemachine bleibt unberührt.
+ */
+function lockWorkstation() {
+    (0, child_process_1.execFile)("rundll32.exe", ["user32.dll,LockWorkStation"], (err) => {
+        if (err)
+            console.error("[power] Sperren fehlgeschlagen:", err);
+    });
+}
 /** Löst den konfigurierten Sleep- oder Shutdown-Befehl aus. */
 function triggerSleepOrShutdown() {
     if (config_1.config.action === "shutdown") {

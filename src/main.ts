@@ -4,6 +4,7 @@ dotenv.config();
 import { app, Tray, Menu, nativeImage, Notification } from "electron";
 import { Guardian, StatusSnapshot } from "./state";
 import { RemoteControl, RemoteCommand } from "./remote";
+import { lockWorkstation } from "./sleepAction";
 import { ICON_IDLE, ICON_ACTIVE, ICON_COUNTDOWN, ICON_SLEEPING } from "./icons";
 
 // Läuft ohne Dock-Icon / Fenster, nur Tray
@@ -19,6 +20,10 @@ function applyRemoteCommand(cmd: RemoteCommand) {
   switch (cmd.type) {
     case "sleep-now":
       guardian.sleepNow();
+      break;
+    case "lock":
+      // Am Guardian vorbei: Sperren ändert weder Zustand noch Countdown.
+      lockWorkstation();
       break;
     case "cancel":
       guardian.cancelCountdown();
@@ -84,6 +89,7 @@ function buildMenu() {
       enabled: snapshot?.state === "idle-counting" || snapshot?.state === "cancel-window",
       click: () => guardian.cancelCountdown(),
     },
+    { label: "Bildschirm sperren", click: () => lockWorkstation() },
     { type: "separator" },
     { label: "Beenden", click: () => app.quit() },
   ]);
