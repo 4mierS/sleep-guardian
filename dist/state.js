@@ -6,6 +6,7 @@ const network_1 = require("./monitors/network");
 const steam_1 = require("./monitors/steam");
 const claudeSessions_1 = require("./monitors/claudeSessions");
 const presence_1 = require("./monitors/presence");
+const media_1 = require("./monitors/media");
 const sleepAction_1 = require("./sleepAction");
 class Guardian {
     constructor() {
@@ -96,10 +97,11 @@ class Guardian {
     async tick() {
         if (this.paused)
             return;
-        const [network, steam, claude] = await Promise.all([
+        const [network, steam, claude, media] = await Promise.all([
             (0, network_1.isNetworkDownloadActive)(),
             (0, steam_1.isSteamDownloadActive)(),
             (0, claudeSessions_1.isClaudeSessionActive)(),
+            (0, media_1.isMediaPlaying)(),
         ]);
         // Synchron und billig, deshalb außerhalb des Promise.all.
         const present = (0, presence_1.isUserPresent)();
@@ -112,6 +114,8 @@ class Guardian {
             reasons.push("Netzwerk-Download aktiv");
         if (claude)
             reasons.push("Claude Code Session aktiv");
+        if (media)
+            reasons.push("Medienwiedergabe läuft");
         const anythingActive = reasons.length > 0;
         const now = Date.now();
         if (anythingActive) {

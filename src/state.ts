@@ -3,6 +3,7 @@ import { isNetworkDownloadActive } from "./monitors/network";
 import { isSteamDownloadActive } from "./monitors/steam";
 import { isClaudeSessionActive } from "./monitors/claudeSessions";
 import { isUserPresent } from "./monitors/presence";
+import { isMediaPlaying } from "./monitors/media";
 import { triggerSleepOrShutdown } from "./sleepAction";
 
 export type AppState = "active" | "idle-counting" | "cancel-window" | "sleeping";
@@ -113,10 +114,11 @@ export class Guardian {
   private async tick() {
     if (this.paused) return;
 
-    const [network, steam, claude] = await Promise.all([
+    const [network, steam, claude, media] = await Promise.all([
       isNetworkDownloadActive(),
       isSteamDownloadActive(),
       isClaudeSessionActive(),
+      isMediaPlaying(),
     ]);
 
     // Synchron und billig, deshalb außerhalb des Promise.all.
@@ -127,6 +129,7 @@ export class Guardian {
     if (steam) reasons.push("Steam-Download läuft");
     else if (network) reasons.push("Netzwerk-Download aktiv");
     if (claude) reasons.push("Claude Code Session aktiv");
+    if (media) reasons.push("Medienwiedergabe läuft");
 
     const anythingActive = reasons.length > 0;
     const now = Date.now();
