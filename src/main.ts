@@ -1,7 +1,7 @@
 import * as dotenv from "dotenv";
 dotenv.config();
 
-import { app, Tray, Menu, nativeImage, Notification, dialog } from "electron";
+import { app, Tray, Menu, nativeImage, Notification, dialog, powerMonitor } from "electron";
 import { Guardian, StatusSnapshot } from "./state";
 import { RemoteControl, RemoteCommand } from "./remote";
 import { lockWorkstation } from "./sleepAction";
@@ -200,6 +200,10 @@ app.whenReady().then(() => {
 
   guardian.onUpdate(handleSnapshot);
   guardian.start();
+
+  // Nach Sleep/Hibernate läuft der Prozess mit veralteten Idle-Zeitstempeln
+  // weiter und würde sonst sofort wieder schlafen legen.
+  powerMonitor.on("resume", () => guardian.notifySystemResume());
 
   remote.onCommand(applyRemoteCommand);
   remote.start();

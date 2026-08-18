@@ -210,6 +210,9 @@ electron_1.app.whenReady().then(() => {
     tray.setContextMenu(buildMenu());
     guardian.onUpdate(handleSnapshot);
     guardian.start();
+    // Nach Sleep/Hibernate läuft der Prozess mit veralteten Idle-Zeitstempeln
+    // weiter und würde sonst sofort wieder schlafen legen.
+    electron_1.powerMonitor.on("resume", () => guardian.notifySystemResume());
     remote.onCommand(applyRemoteCommand);
     remote.start();
 });

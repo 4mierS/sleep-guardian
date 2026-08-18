@@ -60,6 +60,20 @@ export class Guardian {
     }
   }
 
+  /**
+   * Nach dem Aufwachen aus Sleep/Hibernate: der Node-Prozess läuft einfach
+   * weiter und würde mit den alten (längst abgelaufenen) idleSince-/
+   * cancelDeadline-Zeitstempeln sofort wieder in den Sleep-Zweig laufen.
+   * Ohne diesen Reset legt sich der PC direkt nach dem Einschalten erneut
+   * schlafen.
+   */
+  notifySystemResume() {
+    this.state = "active";
+    this.idleSince = null;
+    this.cancelDeadline = null;
+    this.emit(["gerade aufgewacht"]);
+  }
+
   /** Sofort schlafen legen / herunterfahren – egal was gerade läuft. */
   sleepNow() {
     this.state = "sleeping";
