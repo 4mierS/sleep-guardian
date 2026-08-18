@@ -11,11 +11,13 @@
   "dependencies": {
     "dotenv": "^16.4.5",
     "electron": "^31.0.0",
-    "qrcode": "^1.5.4"
+    "qrcode": "^1.5.4",
+    "ws": "^8.21.3"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
     "@types/qrcode": "^1.5.6",
+    "@types/ws": "^8.18.1",
     "typescript": "^5.5.0"
   }
 }

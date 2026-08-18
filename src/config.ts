@@ -55,7 +55,16 @@ export const config = {
   agentName: process.env.AGENT_NAME ?? "Desktop",
   // Wie oft der Agent beim Server nachfragt (Status melden + Befehle abholen).
   // Bestimmt die Latenz der Handy-Steuerung: 5s = Button-Druck wirkt nach max 5s.
+  // Läuft unverändert als Fail-safe weiter, auch wenn der WebSocket-Push unten
+  // aktiv ist – falls die Control-Plane (noch) keinen WS-Endpoint hat oder die
+  // Verbindung mal wegbricht, bleibt die Fernsteuerung trotzdem funktionsfähig.
   heartbeatIntervalMs: numEnv("HEARTBEAT_INTERVAL_MS", 5_000),
+
+  // Pfad des WebSocket-Endpoints auf der Control-Plane, relativ zu
+  // controlPlaneUrl (http(s) wird automatisch zu ws(s)). Darüber werden
+  // Snapshots sofort statt erst beim nächsten Heartbeat gepusht, und Befehle
+  // vom Handy kommen ohne Poll-Latenz an.
+  controlPlaneWsPath: process.env.CONTROL_PLANE_WS_PATH ?? "/api/agent/ws",
 };
 
 function numEnv(name: string, fallback: number): number {
